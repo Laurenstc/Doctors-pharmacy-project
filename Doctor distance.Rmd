@@ -53,9 +53,9 @@ pharms2 <- pharms2 %>%
 
 ##coords for doctors
 ```{r eval=FALSE}
-apikey <- "AIzaSyBCTZTTPTYZPiVBajfi8BWzuBQ9YQSMd-8"
-apikey2 <- "AIzaSyBi5j0W2aJtcwSQtx4Z-NkIXn9ZR5Coa2o"
-apikey3 <- "AIzaSyAvl6GjD5oMpZm8ar2GT5e2RUtuA9okHwc"
+apikey <- "placeholder"
+apikey2 <- "placeholder"
+apikey3 <- "placeholder"
 
 
 getGeoDetails <- function(adress){
@@ -96,7 +96,7 @@ df4 <- df4[1:4631,]
 
 doctors <- cbind(df4, geocoded)
 doctors <- doctors %>%
-  select(index, Société, fulladres, lat, lon)
+  select(index, SociÃ©tÃ©, fulladres, lat, lon)
 
 #drop nas
 doctors <- doctors %>%
