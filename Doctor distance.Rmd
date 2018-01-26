@@ -17,7 +17,7 @@ library(rworldmap)
 
 
 
-##Import data
+## Import data
 ```{r eval=FALSE}
 getwd()
 setwd("C:/Users/Laurens/Documents/IE-BIGDATA/Personal projects/Raphael doctors distance")
@@ -27,7 +27,7 @@ df <- read_excel("CHIRURGIENS DENTISTES ORTHODONTISTES FRANCE_16012017.xlsx", sh
 pharms <- read_excel("CHIRURGIENS DENTISTES ORTHODONTISTES FRANCE_16012017.xlsx", sheet=4, skip=5)
 ```
 
-##change adress to to prep for coordinate switch
+## change adress to to prep for coordinate switch
 ```{r eval=FALSE}
 #get rid of all data except the relevant doctors
 df2 <- df %>%
@@ -41,7 +41,7 @@ df3 <- df2 %>%
 df3$fulladres <- paste0(df3$fulladres, ", France")
 ```
 
-##same for pharmas
+## same for pharmas
 ```{r eval=FALSE}
 pharms2 <- pharms %>%
   filter(between(`Code Postal`, 75001, 75020) | between(`Code Postal`, 91000, 95900)) 
@@ -51,7 +51,7 @@ pharms2 <- pharms2 %>%
 ```
 
 
-##coords for doctors
+## coords for doctors
 ```{r eval=FALSE}
 apikey <- "placeholder"
 apikey2 <- "placeholder"
@@ -87,7 +87,7 @@ for (ii in seq(index, length(df3$fulladres))){
 }
 ```
 
-##append coordinates with original adresses
+## append coordinates with original adresses
 ```{r eval=FALSE}
 df4 <- df3 %>%
   mutate(index1 = seq(1, length(df3$fulladres)))
@@ -104,7 +104,7 @@ doctors <- doctors %>%
 ```
 
 
-##coords for pharmas
+## coords for pharmas
 ```{r eval=FALSE}
 index2 <- 1
 geocoded2 <- data.frame()
@@ -121,7 +121,7 @@ for (ii in seq(index2, length(pharms2$Adresse))){
 
 ```
 
-##append coordinates with original adresses
+## append coordinates with original adresses
 ```{r eval=FALSE}
 pharmacies <- cbind(pharms2, geocoded2)
 pharmacies <- pharmacies %>%
@@ -135,7 +135,7 @@ pharmacies <- pharmacies %>%
 
 
 
-##loop for minimum distance between coords of doctor & pharmas
+## loop for minimum distance between coords of doctor & pharmas
 ```{r eval=FALSE}
 getDistance <-function(d_lat, d_lon, p_lat, p_lon){
   lat_diff <- (p_lat - d_lat)^2
@@ -177,7 +177,7 @@ write.csv(pharmacies, "pharmacies.csv")
 ```
 
 
-##map for checking points
+## map for checking points
 ```{r eval = FALSE}
 
 pharmplot <- pharmacies[between(pharmacies$lat, 48.3, 50), ]
