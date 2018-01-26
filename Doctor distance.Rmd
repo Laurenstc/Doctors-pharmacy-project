@@ -1,0 +1,188 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: console
+---
+
+```{r eval=FALSE}
+library(tidyverse)
+library(readxl)
+library(ggmap)
+library(itertools)
+library(rworldmap)
+```
+
+
+
+##Import data
+```{r eval=FALSE}
+getwd()
+setwd("C:/Users/Laurens/Documents/IE-BIGDATA/Personal projects/Raphael doctors distance")
+
+df <- read_excel("CHIRURGIENS DENTISTES ORTHODONTISTES FRANCE_16012017.xlsx", sheet=2)
+
+pharms <- read_excel("CHIRURGIENS DENTISTES ORTHODONTISTES FRANCE_16012017.xlsx", sheet=4, skip=5)
+```
+
+##change adress to to prep for coordinate switch
+```{r eval=FALSE}
+#get rid of all data except the relevant doctors
+df2 <- df %>%
+  filter(between(`Code Postal`, 75001, 75020) | between(`Code Postal`, 91000, 95900)) 
+
+#add together adress data
+df3 <- df2 %>%
+  unite(fulladres, c("Adresse", "Code Postal", "Ville"), sep=", ")
+
+#add France to the adresses to increase accruacy
+df3$fulladres <- paste0(df3$fulladres, ", France")
+```
+
+##same for pharmas
+```{r eval=FALSE}
+pharms2 <- pharms %>%
+  filter(between(`Code Postal`, 75001, 75020) | between(`Code Postal`, 91000, 95900)) 
+
+pharms2 <- pharms2 %>% 
+  filter(!is.na(Adresse))
+```
+
+
+##coords for doctors
+```{r eval=FALSE}
+apikey <- "AIzaSyBCTZTTPTYZPiVBajfi8BWzuBQ9YQSMd-8"
+apikey2 <- "AIzaSyBi5j0W2aJtcwSQtx4Z-NkIXn9ZR5Coa2o"
+apikey3 <- "AIzaSyAvl6GjD5oMpZm8ar2GT5e2RUtuA9okHwc"
+
+
+getGeoDetails <- function(adress){
+  coords <- geocode(adress, output='all', register_google(key = apikey))
+  answer <- data.frame(lat=NA, lon=NA, status=NA)
+  
+  if (coords$status != "OK"){
+       return(answer)
+  } 
+  
+  answer$lat <- coords$results[[1]]$geometry$location$lat
+  answer$lon <- coords$results[[1]]$geometry$location$lng
+  
+  return(answer)
+}
+
+
+geocoded <- data.frame()
+index <- 2492
+
+for (ii in seq(index, length(df3$fulladres))){
+   print(paste("Working on index", ii, "of", length(df3$fulladres)))
+   #query the google geocoder
+   result <-  getGeoDetails(df3$fulladres[ii]) 
+   print(result$status)     
+   result$index <- ii
+   #append the answer to the results file.
+   geocoded <- rbind(geocoded, result)
+}
+```
+
+##append coordinates with original adresses
+```{r eval=FALSE}
+df4 <- df3 %>%
+  mutate(index1 = seq(1, length(df3$fulladres)))
+
+df4 <- df4[1:4631,]
+
+doctors <- cbind(df4, geocoded)
+doctors <- doctors %>%
+  select(index, Société, fulladres, lat, lon)
+
+#drop nas
+doctors <- doctors %>%
+  dplyr::filter(!is.na(lat))
+```
+
+
+##coords for pharmas
+```{r eval=FALSE}
+index2 <- 1
+geocoded2 <- data.frame()
+
+for (ii in seq(index2, length(pharms2$Adresse))){
+   print(paste("Working on index", ii, "of", length(pharms2$Adresse)))
+   #query the google geocoder
+   result2 <-  getGeoDetails(pharms2$Adresse[ii]) 
+   print(result2$status)     
+   result2$index <- ii
+   #append the answer to the results file.
+   geocoded2 <- rbind(geocoded2, result2)
+}
+
+```
+
+##append coordinates with original adresses
+```{r eval=FALSE}
+pharmacies <- cbind(pharms2, geocoded2)
+pharmacies <- pharmacies %>%
+  select(index, NOM, Adresse, lat, lon)
+
+
+#drop nas
+pharmacies <- pharmacies %>%
+  dplyr::filter(!is.na(lat))
+```
+
+
+
+##loop for minimum distance between coords of doctor & pharmas
+```{r eval=FALSE}
+getDistance <-function(d_lat, d_lon, p_lat, p_lon){
+  lat_diff <- (p_lat - d_lat)^2
+  lon_diff <- (p_lon - d_lon)^2
+  distance <- sqrt(lat_diff + lon_diff)
+  return(distance)
+}
+
+
+x <- c("distance", "pharma_index")
+finaldf <- data.frame(matrix(ncol=2,nrow =0))
+
+for (j in seq(1, 100)){
+  print(paste("Working on index", j, "of", length(doctors$lat)))
+
+  
+  
+  values <- c()
+  for (i in seq(1, length(pharmacies$lat))){
+    #compare distance between doctor adress 1 and pharms adresses
+  
+    result <- getDistance(pharmacies$lat[i], doctors$lat[j], pharmacies$lon[i], doctors$lon[j])
+    values <- c(values, result)
+  }
+  minvals <- which.min(values)
+  finaldf <- rbind(finaldf, minvals)
+  
+}
+
+
+```
+
+
+## export to do the work in python
+```{r eval=FALSE}
+write.csv(doctors, "doctors.csv")
+write.csv(pharmacies, "pharmacies.csv")
+
+```
+
+
+##map for checking points
+```{r eval = FALSE}
+
+pharmplot <- pharmacies[between(pharmacies$lat, 48.3, 50), ]
+
+plot(pharmplot$lat, pharmplot$lon)
+points(doctors$lat, doctors$lon, col='#00F0F8FF')
+```
+
